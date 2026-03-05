@@ -8,39 +8,52 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a20; color: #ffffff; margin: 0; padding: 20px; }
         h2 { text-align: center; color: #00d2ff; margin-bottom: 30px; }
         
-        /* Botão de Esconder Valores */
-        .btn-container { text-align: center; margin-bottom: 20px; }
-        #btn-olho { background-color: #2b2b36; color: #00d2ff; border: 1px solid #00d2ff; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
-        #btn-olho:hover { background-color: #00d2ff; color: #1a1a20; }
-        
-        /* Classe que aplica o desfoque nos valores */
+        /* Botões do Topo */
+        .painel-botoes { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        button { background-color: #2b2b36; color: #00d2ff; border: 1px solid #00d2ff; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; transition: 0.3s; }
+        button:hover { background-color: #00d2ff; color: #1a1a20; }
+        .btn-excluir { background-color: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 5px 10px; font-size: 12px; }
+        .btn-excluir:hover { background-color: #ff4d4d; color: #fff; }
+
+        /* Desfoque */
         .esconder-valores .valor { filter: blur(6px); opacity: 0.7; user-select: none; }
 
-        /* Cards de Resumo */
+        /* Cards */
         .resumo-container { display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
         .card { background: #2b2b36; padding: 20px; border-radius: 10px; width: 200px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-top: 3px solid #363644; }
         .card h3 { margin: 0; font-size: 14px; color: #b0b0c0; text-transform: uppercase; }
         .card p { margin: 10px 0 0; font-size: 22px; font-weight: bold; }
         
-        /* Cores de Rentabilidade */
+        /* Cores */
         .positivo { color: #00ff88 !important; }
         .negativo { color: #ff4d4d !important; }
         
         /* Tabela */
-        .tabela-container { max-width: 1000px; margin: 0 auto; background: #2b2b36; border-radius: 10px; overflow-x: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        .tabela-container { max-width: 1050px; margin: 0 auto; background: #2b2b36; border-radius: 10px; overflow-x: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { padding: 15px 10px; text-align: center; border-bottom: 1px solid #3f3f4e; font-size: 14px; }
         th { background-color: #363644; font-weight: 600; text-transform: uppercase; color: #b0b0c0; }
         tr:hover { background-color: #3f3f4e; }
         .ativo-nome { font-weight: bold; color: #fff; }
+        .badge-manual { font-size: 10px; background: #ffaa00; color: #000; padding: 2px 5px; border-radius: 4px; display: block; margin-top: 4px; }
+
+        /* Modal (Janela de Novo Aporte) */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: #2b2b36; padding: 30px; border-radius: 10px; width: 90%; max-width: 400px; border: 1px solid #3f3f4e; }
+        .modal-box h3 { margin-top: 0; color: #00d2ff; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #b0b0c0; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #3f3f4e; background: #1a1a20; color: #fff; box-sizing: border-box; }
+        .modal-botoes { display: flex; justify-content: space-between; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <h2>📊 Dashboard da Carteira</h2>
+    <h2>📊 Dashboard Consolidado</h2>
     
-    <div class="btn-container">
+    <div class="painel-botoes">
         <button id="btn-olho">👁️ Ocultar Valores</button>
+        <button onclick="abrirModal()">➕ Novo Ativo / Aporte</button>
     </div>
 
     <div class="resumo-container">
@@ -70,40 +83,79 @@
                     <th>Rentab. Total</th>
                     <th>Total Aplicado</th>
                     <th>Saldo Atual</th>
+                    <th>Ação</th>
                 </tr>
             </thead>
             <tbody id="tabela-ativos">
-                <tr id="linha-carregando"><td colspan="8">Conectando à B3... Carregando ativos um a um.</td></tr>
+                <tr id="linha-carregando"><td colspan="9">Carregando seus ativos...</td></tr>
             </tbody>
         </table>
     </div>
 
-    <script>
-        // Carteira com as Quantidades e Preços Médios extraídos das suas imagens
-        const carteira = [
-            { ticker: 'XPCA11', qtd: 241, pm: 7.77 },
-            { ticker: 'SNAG11', qtd: 50, pm: 10.04 },
-            { ticker: 'SNEL11', qtd: 50, pm: 8.48 },
-            { ticker: 'MXRF11', qtd: 12, pm: 9.89 },
-            { ticker: 'IVVB11', qtd: 3, pm: 417.41 },
-            { ticker: 'TSMC34', qtd: 5, pm: 219.89 },
-            { ticker: 'GOGL34', qtd: 5, pm: 126.45 },
-            { ticker: 'BBSE3', qtd: 10, pm: 35.06 },
-            { ticker: 'BBAS3', qtd: 10, pm: 21.00 },
-            { ticker: 'VALE3', qtd: 3, pm: 63.45 },
-            { ticker: 'JHSF3', qtd: 21, pm: 4.41 },
-            { ticker: 'CMIG4', qtd: 10, pm: 8.81 }
-        ];
+    <div class="modal-overlay" id="modal-aporte">
+        <div class="modal-box">
+            <h3>Adicionar Ativo</h3>
+            <div class="form-group">
+                <label>Tipo de Ativo</label>
+                <select id="input-tipo">
+                    <option value="b3">Bolsa (Ação, FII, ETF, BDR)</option>
+                    <option value="manual">Fundo / Renda Fixa (Manual)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ticker ou Nome do Fundo</label>
+                <input type="text" id="input-ticker" placeholder="Ex: BBAS3 ou Fundo Caixa">
+            </div>
+            <div class="form-group">
+                <label>Quantidade</label>
+                <input type="number" id="input-qtd" step="0.01" placeholder="Ex: 10">
+            </div>
+            <div class="form-group">
+                <label>Preço Médio Pago (R$)</label>
+                <input type="number" id="input-pm" step="0.01" placeholder="Ex: 25.50">
+            </div>
+            <div class="form-group" id="div-preco-atual" style="display: none;">
+                <label>Valor Atual (Apenas p/ Manual)</label>
+                <input type="number" id="input-preco-atual" step="0.01" placeholder="Valor líquido de hoje">
+            </div>
+            <div class="modal-botoes">
+                <button onclick="fecharModal()" style="background: transparent; color: #b0b0c0; border: 1px solid #b0b0c0;">Cancelar</button>
+                <button onclick="salvarAtivo()">Salvar na Carteira</button>
+            </div>
+        </div>
+    </div>
 
+    <script>
         const tokenAPI = 'tEEHn5m4uzKB9Ne5qH2j26'; 
 
-        // Formatação de moeda (R$)
+        // Carteira Padrão (Carrega na 1ª vez ou se limpar os dados)
+        // Inclui as Ações, FIIs e os Fundos do 3º print
+        const carteiraPadrao = [
+            { id: 1, ticker: 'XPCA11', qtd: 241, pm: 7.77, tipo: 'b3' },
+            { id: 2, ticker: 'SNAG11', qtd: 50, pm: 10.04, tipo: 'b3' },
+            { id: 3, ticker: 'SNEL11', qtd: 50, pm: 8.48, tipo: 'b3' },
+            { id: 4, ticker: 'MXRF11', qtd: 12, pm: 9.89, tipo: 'b3' },
+            { id: 5, ticker: 'IVVB11', qtd: 3, pm: 417.41, tipo: 'b3' },
+            { id: 6, ticker: 'TSMC34', qtd: 5, pm: 219.89, tipo: 'b3' },
+            { id: 7, ticker: 'GOGL34', qtd: 5, pm: 126.45, tipo: 'b3' },
+            { id: 8, ticker: 'BBSE3', qtd: 10, pm: 35.06, tipo: 'b3' },
+            { id: 9, ticker: 'BBAS3', qtd: 10, pm: 21.00, tipo: 'b3' },
+            { id: 10, ticker: 'VALE3', qtd: 3, pm: 63.45, tipo: 'b3' },
+            { id: 11, ticker: 'JHSF3', qtd: 21, pm: 4.41, tipo: 'b3' },
+            { id: 12, ticker: 'CMIG4', qtd: 10, pm: 8.81, tipo: 'b3' },
+            { id: 13, ticker: 'Fundo 24H FIRF', qtd: 1, pm: 4257.40, tipo: 'manual', precoAtualManual: 4338.80 },
+            { id: 14, ticker: 'XP Debêntures', qtd: 1, pm: 2370.59, tipo: 'manual', precoAtualManual: 2503.81 },
+            { id: 15, ticker: 'Trend Ouro', qtd: 1, pm: 1000.00, tipo: 'manual', precoAtualManual: 958.90 }
+        ];
+
+        // Puxa do armazenamento do navegador ou usa o padrão
+        let minhaCarteira = JSON.parse(localStorage.getItem('carteiraTeteu')) || carteiraPadrao;
+
         const formatarMoeda = (valor) => valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        // Lógica do botão Olhinho
+        // Lógica do Olhinho
         const btnOlho = document.getElementById('btn-olho');
         let valoresVisiveis = true;
-
         btnOlho.addEventListener('click', () => {
             valoresVisiveis = !valoresVisiveis;
             if (valoresVisiveis) {
@@ -115,82 +167,130 @@
             }
         });
 
+        // Controle do Modal
+        const inputTipo = document.getElementById('input-tipo');
+        const divPrecoAtual = document.getElementById('div-preco-atual');
+
+        inputTipo.addEventListener('change', (e) => {
+            divPrecoAtual.style.display = e.target.value === 'manual' ? 'block' : 'none';
+        });
+
+        function abrirModal() { document.getElementById('modal-aporte').style.display = 'flex'; }
+        function fecharModal() { document.getElementById('modal-aporte').style.display = 'none'; }
+
+        function salvarAtivo() {
+            const ticker = document.getElementById('input-ticker').value.toUpperCase();
+            const qtd = parseFloat(document.getElementById('input-qtd').value);
+            const pm = parseFloat(document.getElementById('input-pm').value);
+            const tipo = document.getElementById('input-tipo').value;
+            const precoManual = parseFloat(document.getElementById('input-preco-atual').value) || pm;
+
+            if (!ticker || isNaN(qtd) || isNaN(pm)) {
+                alert("Preencha Ticker, Quantidade e Preço Médio!");
+                return;
+            }
+
+            // Se o ativo já existe, atualiza os dados. Se não, cria um novo.
+            const index = minhaCarteira.findIndex(a => a.ticker === ticker);
+            if (index >= 0) {
+                minhaCarteira[index].qtd = qtd;
+                minhaCarteira[index].pm = pm;
+                if (tipo === 'manual') minhaCarteira[index].precoAtualManual = precoManual;
+            } else {
+                minhaCarteira.push({ id: Date.now(), ticker, qtd, pm, tipo, precoAtualManual: precoManual });
+            }
+
+            localStorage.setItem('carteiraTeteu', JSON.stringify(minhaCarteira));
+            fecharModal();
+            carregarCotacoes(); // Recarrega a tela
+        }
+
+        function excluirAtivo(id) {
+            if(confirm("Tem certeza que deseja excluir este ativo?")) {
+                minhaCarteira = minhaCarteira.filter(a => a.id !== id);
+                localStorage.setItem('carteiraTeteu', JSON.stringify(minhaCarteira));
+                carregarCotacoes();
+            }
+        }
+
         async function carregarCotacoes() {
             const tbody = document.getElementById('tabela-ativos');
-            
-            // Calculando o Total Aplicado logo de cara
-            let totalAplicadoGeral = 0;
-            carteira.forEach(item => { totalAplicadoGeral += (item.qtd * item.pm); });
-            document.getElementById('resumo-aplicado').innerText = formatarMoeda(totalAplicadoGeral);
-
             tbody.innerHTML = ''; 
+            
+            let totalAplicadoGeral = 0;
             let patrimonioTotalGeral = 0;
 
-            for (const item of carteira) {
+            if (minhaCarteira.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9">Sua carteira está vazia. Adicione um ativo!</td></tr>';
+                document.getElementById('resumo-aplicado').innerText = "0,00";
+                document.getElementById('resumo-patrimonio').innerText = "0,00";
+                document.getElementById('resumo-rentabilidade').innerText = "0,00%";
+                return;
+            }
+
+            for (const item of minhaCarteira) {
+                let precoAtual = 0;
+                let varDia = 0;
+                
+                totalAplicadoGeral += (item.qtd * item.pm);
+
                 try {
-                    const url = `https://brapi.dev/api/quote/${item.ticker}?token=${tokenAPI}`;
-                    const response = await fetch(url);
-                    
-                    if (!response.ok) continue; 
-                    
-                    const data = await response.json();
-                    const tr = document.createElement('tr');
-                    
-                    if (data.results && data.results.length > 0) {
-                        const dadosAtivo = data.results[0];
-                        
-                        const precoAtual = dadosAtivo.regularMarketPrice || item.pm; // Se falhar a cotação, usa o PM pra não zerar
-                        const varDia = dadosAtivo.regularMarketChangePercent || 0;
-                        
-                        const valorAplicadoItem = item.qtd * item.pm;
-                        const saldoAtualItem = item.qtd * precoAtual;
-                        const rentabTotalItem = ((precoAtual / item.pm) - 1) * 100;
-
-                        patrimonioTotalGeral += saldoAtualItem;
-
-                        // Classes de cor (verde ou vermelho)
-                        const corVarDia = varDia >= 0 ? 'positivo' : 'negativo';
-                        const sinalVarDia = varDia > 0 ? '+' : '';
-                        
-                        const corRentab = rentabTotalItem >= 0 ? 'positivo' : 'negativo';
-                        const sinalRentab = rentabTotalItem > 0 ? '+' : '';
-
-                        tr.innerHTML = `
-                            <td class="ativo-nome">${item.ticker}</td>
-                            <td>${item.qtd}</td>
-                            <td class="valor">R$ ${formatarMoeda(item.pm)}</td>
-                            <td class="valor">R$ ${formatarMoeda(precoAtual)}</td>
-                            <td class="${corVarDia}">${sinalVarDia}${formatarMoeda(varDia)}%</td>
-                            <td class="${corRentab}">${sinalRentab}${formatarMoeda(rentabTotalItem)}%</td>
-                            <td class="valor">R$ ${formatarMoeda(valorAplicadoItem)}</td>
-                            <td class="valor" style="font-weight:bold;">R$ ${formatarMoeda(saldoAtualItem)}</td>
-                        `;
-                    }
-                    tbody.appendChild(tr);
-
-                    // Atualiza os painéis superiores a cada ativo carregado
-                    document.getElementById('resumo-patrimonio').innerText = formatarMoeda(patrimonioTotalGeral);
-                    
-                    const rentabCarteira = ((patrimonioTotalGeral / totalAplicadoGeral) - 1) * 100;
-                    const cardRentab = document.getElementById('card-rentabilidade');
-                    const spanRentab = document.getElementById('resumo-rentabilidade');
-                    
-                    spanRentab.innerText = (rentabCarteira > 0 ? '+' : '') + formatarMoeda(rentabCarteira) + '%';
-                    
-                    if (rentabCarteira >= 0) {
-                        spanRentab.className = 'valor positivo';
-                        cardRentab.style.borderColor = '#00ff88';
+                    if (item.tipo === 'b3') {
+                        const response = await fetch(`https://brapi.dev/api/quote/${item.ticker}?token=${tokenAPI}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.results && data.results.length > 0) {
+                                precoAtual = data.results[0].regularMarketPrice || item.pm;
+                                varDia = data.results[0].regularMarketChangePercent || 0;
+                            }
+                        }
                     } else {
-                        spanRentab.className = 'valor negativo';
-                        cardRentab.style.borderColor = '#ff4d4d';
+                        // Se for manual (Fundos), usa o valor que o usuário digitou
+                        precoAtual = item.precoAtualManual;
+                        varDia = 0; // Fundos manuais não tem variação diária em tempo real
                     }
-
-                    // Pausa de 300 milissegundos entre as requisições para a Brapi não bloquear por excesso de velocidade
-                    await new Promise(r => setTimeout(r, 300));
-
-                } catch (error) {
-                    console.error(`Falha ao puxar ${item.ticker}`, error);
+                } catch (e) {
+                    precoAtual = item.pm; // Fallback se der erro de rede
                 }
+
+                const valorAplicadoItem = item.qtd * item.pm;
+                const saldoAtualItem = item.qtd * precoAtual;
+                const rentabTotalItem = ((precoAtual / item.pm) - 1) * 100;
+                
+                patrimonioTotalGeral += saldoAtualItem;
+
+                const corVarDia = varDia >= 0 ? 'positivo' : 'negativo';
+                const sinalVarDia = varDia > 0 ? '+' : '';
+                const corRentab = rentabTotalItem >= 0 ? 'positivo' : 'negativo';
+                const sinalRentab = rentabTotalItem > 0 ? '+' : '';
+                
+                const badge = item.tipo === 'manual' ? '<span class="badge-manual">Ativo Manual</span>' : '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="ativo-nome">${item.ticker} ${badge}</td>
+                    <td>${item.qtd}</td>
+                    <td class="valor">R$ ${formatarMoeda(item.pm)}</td>
+                    <td class="valor">R$ ${formatarMoeda(precoAtual)}</td>
+                    <td class="${corVarDia}">${sinalVarDia}${formatarMoeda(varDia)}%</td>
+                    <td class="${corRentab}">${sinalRentab}${formatarMoeda(rentabTotalItem)}%</td>
+                    <td class="valor">R$ ${formatarMoeda(valorAplicadoItem)}</td>
+                    <td class="valor" style="font-weight:bold;">R$ ${formatarMoeda(saldoAtualItem)}</td>
+                    <td><button class="btn-excluir" onclick="excluirAtivo(${item.id})">X</button></td>
+                `;
+                tbody.appendChild(tr);
+
+                // Atualizando os painéis em tempo real
+                document.getElementById('resumo-aplicado').innerText = formatarMoeda(totalAplicadoGeral);
+                document.getElementById('resumo-patrimonio').innerText = formatarMoeda(patrimonioTotalGeral);
+                
+                const rentabCarteira = totalAplicadoGeral > 0 ? ((patrimonioTotalGeral / totalAplicadoGeral) - 1) * 100 : 0;
+                const spanRentab = document.getElementById('resumo-rentabilidade');
+                spanRentab.innerText = (rentabCarteira > 0 ? '+' : '') + formatarMoeda(rentabCarteira) + '%';
+                spanRentab.className = rentabCarteira >= 0 ? 'valor positivo' : 'valor negativo';
+                document.getElementById('card-rentabilidade').style.borderColor = rentabCarteira >= 0 ? '#00ff88' : '#ff4d4d';
+
+                if (item.tipo === 'b3') await new Promise(r => setTimeout(r, 300));
             }
         }
 
