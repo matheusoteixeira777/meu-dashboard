@@ -7,9 +7,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #13141b; color: #ffffff; margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 1px solid #3f3f4e; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 1px solid #3f3f4e; flex-wrap: wrap; gap: 15px; }
         .header h2 { margin: 0; color: #00d2ff; font-size: 24px; }
-        .painel-botoes { display: flex; gap: 10px; }
+        .painel-botoes { display: flex; gap: 10px; flex-wrap: wrap; }
         button { background-color: #2b2b36; color: #00d2ff; border: 1px solid #00d2ff; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.3s; }
         button:hover { background-color: #00d2ff; color: #13141b; }
         .esconder-valores .valor { filter: blur(7px); opacity: 0.6; user-select: none; }
@@ -67,6 +67,7 @@
                 <button id="btn-olho">👁️ Ocultar</button>
                 <button onclick="abrirModalAporte()">➕ Aporte</button>
                 <button onclick="abrirModalProventos()">💰 Proventos</button>
+                <button onclick="abrirModalFechamento()">📅 Fechamento</button>
             </div>
         </div>
 
@@ -142,7 +143,6 @@
         <div class="modal-box">
             <h3 id="modal-titulo-aporte">Adicionar Ativo</h3>
             <input type="hidden" id="input-id">
-            
             <div class="form-group">
                 <label>Tipo</label>
                 <select id="input-tipo">
@@ -203,6 +203,34 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-fechamento">
+        <div class="modal-box">
+            <h3>Lançar Fechamento do Mês</h3>
+            <div class="form-group">
+                <label>Mês / Ano</label>
+                <input type="text" id="input-fechamento-mes" placeholder="Ex: Abr/26">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Sua Rentab. (%)</label>
+                    <input type="number" id="input-fechamento-carteira" step="0.01" placeholder="Ex: 1.50">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>CDI (%)</label>
+                    <input type="number" id="input-fechamento-cdi" step="0.01" placeholder="Ex: 0.90">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Patrimônio Final do Mês (R$)</label>
+                <input type="number" id="input-fechamento-valor" step="0.01" placeholder="Ex: 16500.00">
+            </div>
+            <div class="modal-botoes">
+                <button onclick="fecharModalFechamento()" style="background: transparent; color: #b0b0c0; border: 1px solid #b0b0c0;">Cancelar</button>
+                <button onclick="salvarFechamento()">Salvar Histórico</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const tokenAPI = 'tEEHn5m4uzKB9Ne5qH2j26'; 
 
@@ -224,17 +252,14 @@
             { id: 15, ticker: 'Trend Ouro', qtd: 1, pm: 1000.00, tipo: 'manual', precoAtualManual: 958.90, classe: 'Proteção' }
         ];
 
-        // Histórico Fixo extraído da Declaração de IR (2025)
         const dividendosPadrao = [
-            { mes: "Jan/25", valor: 8.24 }, { mes: "Fev/25", valor: 19.45 },
-            { mes: "Mar/25", valor: 28.22 }, { mes: "Abr/25", valor: 20.29 },
-            { mes: "Mai/25", valor: 27.67 }, { mes: "Jun/25", valor: 34.85 },
-            { mes: "Jul/25", valor: 28.00 }, { mes: "Ago/25", valor: 28.50 },
-            { mes: "Set/25", valor: 33.83 }, { mes: "Out/25", valor: 36.50 },
-            { mes: "Nov/25", valor: 37.00 }, { mes: "Dez/25", valor: 56.32 }
+            { mes: "Jan/25", valor: 8.24 }, { mes: "Fev/25", valor: 19.45 }, { mes: "Mar/25", valor: 28.22 },
+            { mes: "Abr/25", valor: 20.29 }, { mes: "Mai/25", valor: 27.67 }, { mes: "Jun/25", valor: 34.85 },
+            { mes: "Jul/25", valor: 28.00 }, { mes: "Ago/25", valor: 28.50 }, { mes: "Set/25", valor: 33.83 },
+            { mes: "Out/25", valor: 36.50 }, { mes: "Nov/25", valor: 37.00 }, { mes: "Dez/25", valor: 56.32 }
         ];
 
-        const historicoMensalBruto = [
+        const historicoMensalPadrao = [
             { mes: "Jan/24", carteira: 0.19, cdi: 0.99 }, { mes: "Fev/24", carteira: 2.04, cdi: 0.80 },
             { mes: "Mar/24", carteira: -1.78, cdi: 0.83 }, { mes: "Abr/24", carteira: -0.16, cdi: 0.90 },
             { mes: "Mai/24", carteira: 1.28, cdi: 0.83 }, { mes: "Jun/24", carteira: 3.30, cdi: 0.78 },
@@ -251,7 +276,7 @@
             { mes: "Mar/26", carteira: -0.33, cdi: 0.05 }
         ];
 
-        const historicoPatrimonio = [
+        const historicoPatrimonioPadrao = [
             { mes: "Jan/24", valor: 741.09 }, { mes: "Fev/24", valor: 1026.96 }, { mes: "Mar/24", valor: 1993.85 },
             { mes: "Abr/24", valor: 2000.65 }, { mes: "Mai/24", valor: 2206.12 }, { mes: "Jun/24", valor: 2384.76 },
             { mes: "Jul/24", valor: 2538.94 }, { mes: "Ago/24", valor: 2609.30 }, { mes: "Set/24", valor: 2585.41 },
@@ -263,8 +288,11 @@
             { mes: "Jan/26", valor: 12243.17 }, { mes: "Fev/26", valor: 13652.96 }, { mes: "Mar/26", valor: 15351.44 }
         ];
 
+        // Bancos de Dados no Navegador
         let minhaCarteira = JSON.parse(localStorage.getItem('carteiraTeteu_v4')) || carteiraPadrao;
         let meusDividendos = JSON.parse(localStorage.getItem('dividendosTeteu_v1')) || dividendosPadrao;
+        let historicoMensal = JSON.parse(localStorage.getItem('histMensal_v1')) || historicoMensalPadrao;
+        let historicoPatrimonio = JSON.parse(localStorage.getItem('histPatrimonio_v1')) || historicoPatrimonioPadrao;
         
         let chartAlocacao, chartRentabilidade, chartEvolucao, chartDividendos;
 
@@ -282,7 +310,7 @@
         const divPrecoAtual = document.getElementById('div-preco-atual');
         inputTipo.addEventListener('change', (e) => { divPrecoAtual.style.display = e.target.value === 'manual' ? 'block' : 'none'; });
 
-        // Funções do Modal de Aporte
+        // === MODAL APORTE ===
         function abrirModalAporte() { 
             document.getElementById('modal-titulo-aporte').innerText = 'Adicionar Ativo';
             document.getElementById('input-id').value = '';
@@ -327,7 +355,6 @@
             } else {
                 minhaCarteira.push({ id: Date.now(), ticker, classe, qtd, pm, tipo, precoAtualManual: precoManual });
             }
-
             localStorage.setItem('carteiraTeteu_v4', JSON.stringify(minhaCarteira));
             fecharModalAporte(); carregarCotacoes();
         }
@@ -340,7 +367,7 @@
             }
         }
 
-        // Funções do Modal de Proventos
+        // === MODAL PROVENTOS ===
         function abrirModalProventos() {
             document.getElementById('input-mes-div').value = '';
             document.getElementById('input-valor-div').value = '';
@@ -351,40 +378,66 @@
         function salvarDividendo() {
             const mes = document.getElementById('input-mes-div').value;
             const valor = parseFloat(document.getElementById('input-valor-div').value);
-
             if (!mes || isNaN(valor)) { alert("Preencha o Mês e o Valor!"); return; }
 
             const index = meusDividendos.findIndex(d => d.mes === mes);
-            if (index >= 0) {
-                meusDividendos[index].valor = valor; // Atualiza se o mês já existir
-            } else {
-                meusDividendos.push({ mes, valor }); // Insere novo mês
-            }
+            if (index >= 0) meusDividendos[index].valor = valor; 
+            else meusDividendos.push({ mes, valor }); 
 
             localStorage.setItem('dividendosTeteu_v1', JSON.stringify(meusDividendos));
             fecharModalProventos(); 
-            // Renderiza apenas os gráficos novamente para atualizar a escadinha
-            renderizarGraficos();
+            carregarCotacoes(); // Recarrega os gráficos
         }
 
+        // === MODAL FECHAMENTO (HISTÓRICO MENSAL) ===
+        function abrirModalFechamento() {
+            document.getElementById('input-fechamento-mes').value = '';
+            document.getElementById('input-fechamento-carteira').value = '';
+            document.getElementById('input-fechamento-cdi').value = '';
+            document.getElementById('input-fechamento-valor').value = '';
+            document.getElementById('modal-fechamento').style.display = 'flex';
+        }
+        function fecharModalFechamento() { document.getElementById('modal-fechamento').style.display = 'none'; }
+
+        function salvarFechamento() {
+            const mes = document.getElementById('input-fechamento-mes').value;
+            const carteira = parseFloat(document.getElementById('input-fechamento-carteira').value);
+            const cdi = parseFloat(document.getElementById('input-fechamento-cdi').value);
+            const valor = parseFloat(document.getElementById('input-fechamento-valor').value);
+
+            if (!mes || isNaN(carteira) || isNaN(cdi) || isNaN(valor)) { alert("Preencha todos os campos do fechamento!"); return; }
+
+            // Salva na lista de % (Gráfico de Linhas)
+            const idxMensal = historicoMensal.findIndex(h => h.mes === mes);
+            if (idxMensal >= 0) historicoMensal[idxMensal] = { mes, carteira, cdi };
+            else historicoMensal.push({ mes, carteira, cdi });
+
+            // Salva na lista de R$ (Gráfico de Área)
+            const idxPatrimonio = historicoPatrimonio.findIndex(h => h.mes === mes);
+            if (idxPatrimonio >= 0) historicoPatrimonio[idxPatrimonio] = { mes, valor };
+            else historicoPatrimonio.push({ mes, valor });
+
+            localStorage.setItem('histMensal_v1', JSON.stringify(historicoMensal));
+            localStorage.setItem('histPatrimonio_v1', JSON.stringify(historicoPatrimonio));
+            
+            fecharModalFechamento();
+            carregarCotacoes(); // Recarrega a tela com os dados novos
+        }
+
+        // === RENDERIZAÇÃO DOS GRÁFICOS ===
         function renderizarGraficos(mapaClasses = null, patrimonioAtual = null) {
             Chart.defaults.color = '#8a8a9d';
             Chart.defaults.font.family = "'Segoe UI', Tahoma, sans-serif";
 
-            // Só recalcula se foram passados os parâmetros ao vivo da carteira
+            // 1. Gráfico Rosca (Alocação)
             if (mapaClasses) {
-                // 1. Gráfico Rosca (Alocação)
                 const ctxAloc = document.getElementById('graficoAlocacao').getContext('2d');
                 if(chartAlocacao) chartAlocacao.destroy();
                 chartAlocacao = new Chart(ctxAloc, {
                     type: 'doughnut',
                     data: {
                         labels: Object.keys(mapaClasses),
-                        datasets: [{
-                            data: Object.values(mapaClasses),
-                            backgroundColor: ['#00d2ff', '#6610f2', '#ffaa00', '#00ff88', '#ff4d4d'],
-                            borderWidth: 0, hoverOffset: 5
-                        }]
+                        datasets: [{ data: Object.values(mapaClasses), backgroundColor: ['#00d2ff', '#6610f2', '#ffaa00', '#00ff88', '#ff4d4d'], borderWidth: 0, hoverOffset: 5 }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', padding: 15 } } }, cutout: '70%' }
                 });
@@ -392,17 +445,16 @@
 
             // 2. Gráfico Rentabilidade (Linhas % vs CDI)
             let accCarteira = 1; let accCdi = 1;
-            let labelsHistorico = []; let dadosRentabCarteira = []; let dadosRentabCDI = [];
+            let labelsHist = []; let dadosRentabCarteira = []; let dadosRentabCDI = [];
 
-            historicoMensalBruto.forEach(mes => {
+            historicoMensal.forEach(mes => {
                 accCarteira *= (1 + (mes.carteira / 100));
                 accCdi *= (1 + (mes.cdi / 100));
-                labelsHistorico.push(mes.mes);
+                labelsHist.push(mes.mes);
                 dadosRentabCarteira.push(((accCarteira - 1) * 100).toFixed(2));
                 dadosRentabCDI.push(((accCdi - 1) * 100).toFixed(2));
             });
 
-            // Atualiza o KPI "Rentabilidade Total (Geral)"
             const rentabGeralFinal = (accCarteira - 1) * 100;
             const spanRentab = document.getElementById('resumo-rentabilidade');
             spanRentab.innerText = (rentabGeralFinal > 0 ? '+' : '') + formatarMoeda(rentabGeralFinal) + '%';
@@ -414,64 +466,52 @@
             chartRentabilidade = new Chart(ctxRentab, {
                 type: 'line',
                 data: {
-                    labels: labelsHistorico,
+                    labels: labelsHist,
                     datasets: [
                         { label: 'Carteira (%)', data: dadosRentabCarteira, borderColor: '#00d2ff', borderWidth: 3, pointBackgroundColor: '#00d2ff', fill: false, tension: 0.3 },
                         { label: 'CDI (%)', data: dadosRentabCDI, borderColor: '#ffaa00', borderWidth: 2, borderDash: [5, 5], pointBackgroundColor: '#ffaa00', pointRadius: 2, fill: false, tension: 0.3 }
                     ]
                 },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    plugins: { legend: { display: true, position: 'top', labels: { color: '#fff', usePointStyle: true } } },
-                    scales: { y: { grid: { color: '#2b2b36' }, ticks: { callback: function(value) { return value + '%' } } }, x: { grid: { display: false } } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { color: '#fff', usePointStyle: true } } }, scales: { y: { grid: { color: '#2b2b36' }, ticks: { callback: function(value) { return value + '%' } } }, x: { grid: { display: false } } } }
             });
 
             // 3. Gráfico Evolução (Área R$)
             if (patrimonioAtual) {
-                const labelsPatrimonio = historicoPatrimonio.map(h => h.mes);
-                const dadosPatrimonio = historicoPatrimonio.map(h => h.valor);
+                const labelsPatr = historicoPatrimonio.map(h => h.mes);
+                const dadosPatr = historicoPatrimonio.map(h => h.valor);
+
+                const dataHoje = new Date();
+                const mesHojeForm = dataHoje.toLocaleString('pt-BR', { month: 'short' }).substring(0,3) + '/' + dataHoje.getFullYear().toString().substring(2);
+                
+                if (labelsPatr[labelsPatr.length - 1] !== mesHojeForm) {
+                    labelsPatr.push(mesHojeForm);
+                    dadosPatr.push(patrimonioAtual);
+                } else {
+                    dadosPatr[dadosPatr.length - 1] = patrimonioAtual;
+                }
 
                 const ctxEvolucao = document.getElementById('graficoEvolucao').getContext('2d');
                 if(chartEvolucao) chartEvolucao.destroy();
                 chartEvolucao = new Chart(ctxEvolucao, {
                     type: 'line',
                     data: {
-                        labels: labelsPatrimonio,
-                        datasets: [{
-                            label: 'Patrimônio Total (R$)',
-                            data: dadosPatrimonio,
-                            borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.15)',
-                            borderWidth: 3, pointBackgroundColor: '#00ff88', pointRadius: 3, fill: true, tension: 0.4
-                        }]
+                        labels: labelsPatr,
+                        datasets: [{ label: 'Patrimônio Total (R$)', data: dadosPatr, borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.15)', borderWidth: 3, pointBackgroundColor: '#00ff88', pointRadius: 3, fill: true, tension: 0.4 }]
                     },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, 
-                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return 'R$ ' + formatarMoeda(c.parsed.y); } } } },
-                        scales: { y: { grid: { color: '#2b2b36' }, ticks: { callback: function(value) { return 'R$ ' + (value >= 1000 ? (value/1000) + 'k' : value); } } }, x: { grid: { display: false } } }
-                    }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return 'R$ ' + formatarMoeda(c.parsed.y); } } } }, scales: { y: { grid: { color: '#2b2b36' }, ticks: { callback: function(value) { return 'R$ ' + (value >= 1000 ? (value/1000) + 'k' : value); } } }, x: { grid: { display: false } } } }
                 });
             }
 
-            // 4. Gráfico Dividendos (Barras)
+            // 4. Gráfico Dividendos
             const ctxDiv = document.getElementById('graficoDividendos').getContext('2d');
             if(chartDividendos) chartDividendos.destroy();
             chartDividendos = new Chart(ctxDiv, {
                 type: 'bar',
                 data: {
                     labels: meusDividendos.map(d => d.mes),
-                    datasets: [{
-                        label: 'Proventos Pagos (R$)',
-                        data: meusDividendos.map(d => d.valor),
-                        backgroundColor: '#6610f2',
-                        borderRadius: 4
-                    }]
+                    datasets: [{ label: 'Proventos Pagos (R$)', data: meusDividendos.map(d => d.valor), backgroundColor: '#6610f2', borderRadius: 4 }]
                 },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return 'R$ ' + formatarMoeda(c.parsed.y); } } } },
-                    scales: { y: { grid: { color: '#2b2b36' }, ticks: { callback: function(value) { return 'R$ ' + value; } } }, x: { grid: { display: false } } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return 'R$ ' + formatarMoeda(c.parsed.y); } } } }, scales: { y: { grid: { color: '#2b2b36' }, ticks: { callback: function(value) { return 'R$ ' + value; } } }, x: { grid: { display: false } } } }
             });
         }
 
@@ -479,14 +519,11 @@
             const tbody = document.getElementById('tabela-ativos');
             tbody.innerHTML = ''; 
             
-            let totalAplicadoGeral = 0; 
-            let patrimonioTotalGeral = 0;
-            let saldoAnteriorTotal = 0; 
-            let mapaClasses = {}; 
+            let totalAplicadoGeral = 0; let patrimonioTotalGeral = 0; let saldoAnteriorTotal = 0; let mapaClasses = {}; 
 
             if (minhaCarteira.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Sua carteira está vazia.</td></tr>';
-                renderizarGraficos(); // Para renderizar pelo menos os vazios/dividendos salvos
+                renderizarGraficos(); 
                 return;
             }
 
@@ -510,7 +547,6 @@
                 const valorAplicadoItem = item.qtd * item.pm;
                 const saldoAtualItem = item.qtd * precoAtual;
                 const rentabTotalItem = ((precoAtual / item.pm) - 1) * 100;
-                
                 const saldoAnteriorItem = saldoAtualItem / (1 + (varDia / 100));
                 
                 patrimonioTotalGeral += saldoAtualItem;
@@ -534,15 +570,11 @@
                     <td class="${corRentab}">${sinalRentab}${formatarMoeda(rentabTotalItem)}%</td>
                     <td class="valor">R$ ${formatarMoeda(valorAplicadoItem)}</td>
                     <td class="valor" style="font-weight:bold; color:#fff;">R$ ${formatarMoeda(saldoAtualItem)}</td>
-                    <td>
-                        <button class="btn-acao btn-editar" onclick="editarAtivo(${item.id})">✏️</button>
-                        <button class="btn-acao btn-excluir" onclick="excluirAtivo(${item.id})">✖</button>
-                    </td>
+                    <td><button class="btn-acao btn-editar" onclick="editarAtivo(${item.id})">✏️</button> <button class="btn-acao btn-excluir" onclick="excluirAtivo(${item.id})">✖</button></td>
                 `;
                 tbody.appendChild(tr);
 
                 const lucroRS = patrimonioTotalGeral - totalAplicadoGeral;
-                
                 document.getElementById('resumo-aplicado').innerText = formatarMoeda(totalAplicadoGeral);
                 document.getElementById('resumo-patrimonio').innerText = formatarMoeda(patrimonioTotalGeral);
                 
@@ -560,21 +592,14 @@
                     spanHoje.innerText = sinalHoje + 'R$ ' + formatarMoeda(lucroHojeRS) + ' (' + sinalHoje + formatarMoeda(lucroHojePct) + '%)';
                     
                     const cardHoje = document.getElementById('card-hoje');
-                    if (lucroHojeRS >= 0) {
-                        spanHoje.className = 'valor hoje-positivo';
-                        cardHoje.style.borderLeftColor = '#00ff88';
-                    } else {
-                        spanHoje.className = 'valor hoje-negativo';
-                        cardHoje.style.borderLeftColor = '#ff4d4d';
-                    }
+                    if (lucroHojeRS >= 0) { spanHoje.className = 'valor hoje-positivo'; cardHoje.style.borderLeftColor = '#00ff88'; } 
+                    else { spanHoje.className = 'valor hoje-negativo'; cardHoje.style.borderLeftColor = '#ff4d4d'; }
 
                     renderizarGraficos(mapaClasses, patrimonioTotalGeral);
                 }
-                
                 if (item.tipo === 'b3') await new Promise(r => setTimeout(r, 300));
             }
         }
-
         carregarCotacoes();
     </script>
 </body>
