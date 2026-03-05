@@ -61,7 +61,7 @@
         <div class="header">
             <h2>📊 Portfólio Analytics</h2>
             <div class="painel-botoes">
-                <button id="btn-olho">👁️ Ocultar</button>
+                <button id="btn-olho">👁️ Ocultar Valores</button>
                 <button onclick="abrirModal()">➕ Aporte</button>
             </div>
         </div>
@@ -91,7 +91,7 @@
                 <canvas id="graficoAlocacao"></canvas>
             </div>
             <div class="chart-box">
-                <h3>Evolução: Carteira x CDI (Acumulado)</h3>
+                <h3>Evolução Patrimonial (R$)</h3>
                 <canvas id="graficoHistorico"></canvas>
             </div>
         </div>
@@ -187,35 +187,35 @@
             { id: 15, ticker: 'Trend Ouro', qtd: 1, pm: 1000.00, tipo: 'manual', precoAtualManual: 958.90, classe: 'Proteção' }
         ];
 
-        // O Histórico Fixo extraído da sua Corretora (Jan/24 a Mar/26)
-        const historicoMensalBruto = [
-            { mes: "Jan/24", carteira: 0.19, cdi: 0.99 },
-            { mes: "Fev/24", carteira: 2.04, cdi: 0.80 },
-            { mes: "Mar/24", carteira: -1.78, cdi: 0.83 },
-            { mes: "Abr/24", carteira: -0.16, cdi: 0.90 },
-            { mes: "Mai/24", carteira: 1.28, cdi: 0.83 },
-            { mes: "Jun/24", carteira: 3.30, cdi: 0.78 },
-            { mes: "Jul/24", carteira: 1.62, cdi: 0.90 },
-            { mes: "Ago/24", carteira: 3.36, cdi: 0.86 },
-            { mes: "Set/24", carteira: -3.32, cdi: 0.83 },
-            { mes: "Out/24", carteira: -4.02, cdi: 0.92 },
-            { mes: "Nov/24", carteira: 2.09, cdi: 0.79 },
-            { mes: "Dez/24", carteira: 1.70, cdi: 0.93 },
-            { mes: "Jan/25", carteira: -0.16, cdi: 1.00 },
-            { mes: "Fev/25", carteira: -5.16, cdi: 0.99 },
-            { mes: "Mar/25", carteira: -0.02, cdi: 1.10 },
-            { mes: "Abr/25", carteira: 2.42, cdi: 1.06 },
-            { mes: "Mai/25", carteira: 7.97, cdi: 1.14 },
-            { mes: "Jun/25", carteira: -1.33, cdi: 1.09 },
-            { mes: "Jul/25", carteira: 0.39, cdi: 1.26 },
-            { mes: "Ago/25", carteira: 2.33, cdi: 1.17 },
-            { mes: "Set/25", carteira: 3.82, cdi: 1.22 },
-            { mes: "Out/25", carteira: 0.58, cdi: 1.28 },
-            { mes: "Nov/25", carteira: 2.81, cdi: 1.05 },
-            { mes: "Dez/25", carteira: 2.58, cdi: 1.22 },
-            { mes: "Jan/26", carteira: 1.92, cdi: 1.17 },
-            { mes: "Fev/26", carteira: 1.59, cdi: 1.00 },
-            { mes: "Mar/26", carteira: -0.33, cdi: 0.05 }
+        // O Histórico do seu Patrimônio Total (Evolução em R$) extraído das suas imagens
+        const historicoPatrimonio = [
+            { mes: "Jan/24", valor: 741.09 },
+            { mes: "Fev/24", valor: 1026.96 },
+            { mes: "Mar/24", valor: 1993.85 },
+            { mes: "Abr/24", valor: 2000.65 },
+            { mes: "Mai/24", valor: 2206.12 },
+            { mes: "Jun/24", valor: 2384.76 },
+            { mes: "Jul/24", valor: 2538.94 },
+            { mes: "Ago/24", valor: 2609.30 },
+            { mes: "Set/24", valor: 2585.41 },
+            { mes: "Out/24", valor: 2631.91 },
+            { mes: "Nov/24", valor: 2895.22 },
+            { mes: "Dez/24", valor: 2972.52 },
+            { mes: "Jan/25", valor: 2967.70 },
+            { mes: "Fev/25", valor: 2814.71 },
+            { mes: "Mar/25", valor: 2814.22 },
+            { mes: "Abr/25", valor: 2882.34 },
+            { mes: "Mai/25", valor: 3123.37 },
+            { mes: "Jun/25", valor: 3081.75 },
+            { mes: "Jul/25", valor: 3050.04 },
+            { mes: "Ago/25", valor: 4340.39 },
+            { mes: "Set/25", valor: 4506.23 },
+            { mes: "Out/25", valor: 6044.98 },
+            { mes: "Nov/25", valor: 9664.42 },
+            { mes: "Dez/25", valor: 12012.78 },
+            { mes: "Jan/26", valor: 12243.17 },
+            { mes: "Fev/26", valor: 13652.96 },
+            { mes: "Mar/26", valor: 15351.44 }
         ];
 
         let minhaCarteira = JSON.parse(localStorage.getItem('carteiraTeteu_v4')) || carteiraPadrao;
@@ -228,6 +228,7 @@
         btnOlho.addEventListener('click', () => {
             valoresVisiveis = !valoresVisiveis;
             document.body.classList.toggle('esconder-valores', !valoresVisiveis);
+            btnOlho.innerText = valoresVisiveis ? '👁️ Ocultar Valores' : '👁️ Mostrar Valores';
         });
 
         const inputTipo = document.getElementById('input-tipo');
@@ -291,11 +292,11 @@
             }
         }
 
-        function renderizarGraficos(mapaClasses) {
+        function renderizarGraficos(mapaClasses, patrimonioAtual) {
             Chart.defaults.color = '#8a8a9d';
             Chart.defaults.font.family = "'Segoe UI', Tahoma, sans-serif";
 
-            // Gráfico 1: Rosca
+            // Gráfico 1: Rosca (Alocação)
             const ctxAloc = document.getElementById('graficoAlocacao').getContext('2d');
             if(chartAlocacao) chartAlocacao.destroy();
             chartAlocacao = new Chart(ctxAloc, {
@@ -311,23 +312,24 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#fff', padding: 20 } } }, cutout: '70%' }
             });
 
-            // Motor de Juros Compostos (Cálculo do Histórico)
-            let accCarteira = 1;
-            let accCdi = 1;
-            let labelsHistorico = [];
-            let dadosCarteira = [];
-            let dadosCDI = [];
+            // Preparando dados para o Gráfico de Evolução
+            const labelsHistorico = historicoPatrimonio.map(h => h.mes);
+            const dadosPatrimonio = historicoPatrimonio.map(h => h.valor);
 
-            historicoMensalBruto.forEach(mes => {
-                accCarteira *= (1 + (mes.carteira / 100));
-                accCdi *= (1 + (mes.cdi / 100));
-                
-                labelsHistorico.push(mes.mes);
-                dadosCarteira.push(((accCarteira - 1) * 100).toFixed(2));
-                dadosCDI.push(((accCdi - 1) * 100).toFixed(2));
-            });
+            // Adiciona o valor de HOJE (calculado ao vivo pela API) como a última ponta do gráfico
+            const dataHoje = new Date();
+            const mesHojeFormatado = dataHoje.toLocaleString('pt-BR', { month: 'short' }).substring(0,3) + '/' + dataHoje.getFullYear().toString().substring(2);
+            
+            // Se o mês atual ainda não estiver na lista fixa, a gente adiciona ele dinamicamente no gráfico
+            if (labelsHistorico[labelsHistorico.length - 1] !== mesHojeFormatado) {
+                labelsHistorico.push(mesHojeFormatado);
+                dadosPatrimonio.push(patrimonioAtual);
+            } else {
+                // Atualiza o valor do último mês para bater com o centavo de hoje
+                dadosPatrimonio[dadosPatrimonio.length - 1] = patrimonioAtual;
+            }
 
-            // Gráfico 2: Evolução Carteira x CDI
+            // Gráfico 2: Evolução Patrimonial (Gráfico de Área)
             const ctxHist = document.getElementById('graficoHistorico').getContext('2d');
             if(chartHistorico) chartHistorico.destroy();
             
@@ -337,28 +339,39 @@
                     labels: labelsHistorico,
                     datasets: [
                         {
-                            label: 'Sua Carteira (%)',
-                            data: dadosCarteira,
-                            borderColor: '#00d2ff',
-                            backgroundColor: 'rgba(0, 210, 255, 0.15)',
-                            borderWidth: 3, pointBackgroundColor: '#00d2ff', pointRadius: 4, fill: true, tension: 0.3
-                        },
-                        {
-                            label: 'CDI (%)',
-                            data: dadosCDI,
-                            borderColor: '#ffaa00',
-                            borderWidth: 2, borderDash: [5, 5], pointBackgroundColor: '#ffaa00', pointRadius: 2, fill: false, tension: 0.3
+                            label: 'Patrimônio Total (R$)',
+                            data: dadosPatrimonio,
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.15)', // Cor de preenchimento (Área)
+                            borderWidth: 3, 
+                            pointBackgroundColor: '#00ff88', 
+                            pointRadius: 3, 
+                            fill: true, // Preenche a área de baixo
+                            tension: 0.4 // Linha curvada suave
                         }
                     ]
                 },
                 options: { 
                     responsive: true, maintainAspectRatio: false, 
                     plugins: { 
-                        legend: { display: true, position: 'top', labels: { color: '#fff', usePointStyle: true } },
-                        tooltip: { mode: 'index', intersect: false }
+                        legend: { display: false },
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'R$ ' + formatarMoeda(context.parsed.y);
+                                }
+                            }
+                        }
                     },
                     scales: { 
-                        y: { grid: { color: '#2b2b36' }, ticks: { callback: function(value) { return value + '%' } } },
+                        y: { 
+                            grid: { color: '#2b2b36' }, 
+                            ticks: { 
+                                callback: function(value) { return 'R$ ' + (value >= 1000 ? (value/1000) + 'k' : value); }
+                            } 
+                        },
                         x: { grid: { display: false } }
                     }
                 }
@@ -441,7 +454,7 @@
                 spanRentab.className = rentabCarteira >= 0 ? 'valor positivo' : 'valor negativo';
                 document.getElementById('card-rentabilidade').style.borderLeftColor = rentabCarteira >= 0 ? '#00ff88' : '#ff4d4d';
 
-                if (item === minhaCarteira[minhaCarteira.length - 1]) renderizarGraficos(mapaClasses);
+                if (item === minhaCarteira[minhaCarteira.length - 1]) renderizarGraficos(mapaClasses, patrimonioTotalGeral);
                 if (item.tipo === 'b3') await new Promise(r => setTimeout(r, 300));
             }
         }
