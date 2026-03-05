@@ -3,124 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Investimentos</title>
+    <title>Dashboard de Investimentos - Teteu</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e24; color: #ffffff; margin: 0; padding: 40px; }
-        h2 { text-align: center; color: #00d2ff; }
-        .container { max-width: 900px; margin: 0 auto; background: #2b2b36; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow: hidden; padding-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #3f3f4e; }
-        th { background-color: #363644; font-weight: 600; text-transform: uppercase; font-size: 14px; color: #b0b0c0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a20; color: #ffffff; margin: 0; padding: 20px; }
+        h2 { text-align: center; color: #00d2ff; margin-bottom: 30px; }
+        
+        /* Botão de Esconder Valores */
+        .btn-container { text-align: center; margin-bottom: 20px; }
+        #btn-olho { background-color: #2b2b36; color: #00d2ff; border: 1px solid #00d2ff; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        #btn-olho:hover { background-color: #00d2ff; color: #1a1a20; }
+        
+        /* Classe que aplica o desfoque nos valores */
+        .esconder-valores .valor { filter: blur(6px); opacity: 0.7; user-select: none; }
+
+        /* Cards de Resumo */
+        .resumo-container { display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+        .card { background: #2b2b36; padding: 20px; border-radius: 10px; width: 200px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-top: 3px solid #363644; }
+        .card h3 { margin: 0; font-size: 14px; color: #b0b0c0; text-transform: uppercase; }
+        .card p { margin: 10px 0 0; font-size: 22px; font-weight: bold; }
+        
+        /* Cores de Rentabilidade */
+        .positivo { color: #00ff88 !important; }
+        .negativo { color: #ff4d4d !important; }
+        
+        /* Tabela */
+        .tabela-container { max-width: 1000px; margin: 0 auto; background: #2b2b36; border-radius: 10px; overflow-x: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 15px 10px; text-align: center; border-bottom: 1px solid #3f3f4e; font-size: 14px; }
+        th { background-color: #363644; font-weight: 600; text-transform: uppercase; color: #b0b0c0; }
         tr:hover { background-color: #3f3f4e; }
         .ativo-nome { font-weight: bold; color: #fff; }
-        .positivo { color: #00ff88; font-weight: bold; }
-        .negativo { color: #ff4d4d; font-weight: bold; }
-        .aviso { padding: 20px; text-align: center; color: #ffaa00; background: #2b2b36; font-size: 14px; }
-        .rodape-total { text-align: right; padding: 20px; font-size: 20px; font-weight: bold; color: #00d2ff; }
     </style>
 </head>
 <body>
 
     <h2>📊 Dashboard da Carteira</h2>
     
-    <div class="container">
+    <div class="btn-container">
+        <button id="btn-olho">👁️ Ocultar Valores</button>
+    </div>
+
+    <div class="resumo-container">
+        <div class="card" style="border-color: #b0b0c0;">
+            <h3>Total Aplicado</h3>
+            <p class="valor">R$ <span id="resumo-aplicado">0,00</span></p>
+        </div>
+        <div class="card" style="border-color: #00d2ff;">
+            <h3>Patrimônio Atual</h3>
+            <p class="valor">R$ <span id="resumo-patrimonio">0,00</span></p>
+        </div>
+        <div class="card" id="card-rentabilidade" style="border-color: #363644;">
+            <h3>Rentabilidade Total</h3>
+            <p class="valor"><span id="resumo-rentabilidade">0,00%</span></p>
+        </div>
+    </div>
+    
+    <div class="tabela-container">
         <table>
             <thead>
                 <tr>
                     <th>Ativo</th>
                     <th>Qtd</th>
+                    <th>Preço Médio</th>
                     <th>Cotação Atual</th>
-                    <th>Variação</th>
-                    <th>Saldo Investido</th>
+                    <th>Var. Dia</th>
+                    <th>Rentab. Total</th>
+                    <th>Total Aplicado</th>
+                    <th>Saldo Atual</th>
                 </tr>
             </thead>
             <tbody id="tabela-ativos">
-                <tr id="linha-carregando"><td colspan="5">Conectando à B3... Aguarde.</td></tr>
+                <tr id="linha-carregando"><td colspan="8">Conectando à B3... Carregando ativos um a um.</td></tr>
             </tbody>
         </table>
-        
-        <div class="rodape-total">
-            Patrimônio Variável: R$ <span id="patrimonio-total">0,00</span>
-        </div>
-        
-        <div id="mensagem-erro" class="aviso" style="display:none;"></div>
     </div>
 
     <script>
-        // Sua carteira com as quantidades extraídas da sua corretora
+        // Carteira com as Quantidades e Preços Médios extraídos das suas imagens
         const carteira = [
-            { ticker: 'XPCA11', qtd: 241 },
-            { ticker: 'SNAG11', qtd: 50 },
-            { ticker: 'SNEL11', qtd: 50 },
-            { ticker: 'MXRF11', qtd: 12 },
-            { ticker: 'IVVB11', qtd: 3 },
-            { ticker: 'TSMC34', qtd: 5 },
-            { ticker: 'GOGL34', qtd: 5 },
-            { ticker: 'BBSE3', qtd: 10 },
-            { ticker: 'BBAS3', qtd: 10 },
-            { ticker: 'VALE3', qtd: 3 },
-            { ticker: 'JHSF3', qtd: 21 },
-            { ticker: 'CMIG4', qtd: 10 }
+            { ticker: 'XPCA11', qtd: 241, pm: 7.77 },
+            { ticker: 'SNAG11', qtd: 50, pm: 10.04 },
+            { ticker: 'SNEL11', qtd: 50, pm: 8.48 },
+            { ticker: 'MXRF11', qtd: 12, pm: 9.89 },
+            { ticker: 'IVVB11', qtd: 3, pm: 417.41 },
+            { ticker: 'TSMC34', qtd: 5, pm: 219.89 },
+            { ticker: 'GOGL34', qtd: 5, pm: 126.45 },
+            { ticker: 'BBSE3', qtd: 10, pm: 35.06 },
+            { ticker: 'BBAS3', qtd: 10, pm: 21.00 },
+            { ticker: 'VALE3', qtd: 3, pm: 63.45 },
+            { ticker: 'JHSF3', qtd: 21, pm: 4.41 },
+            { ticker: 'CMIG4', qtd: 10, pm: 8.81 }
         ];
 
         const tokenAPI = 'tEEHn5m4uzKB9Ne5qH2j26'; 
 
+        // Formatação de moeda (R$)
+        const formatarMoeda = (valor) => valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Lógica do botão Olhinho
+        const btnOlho = document.getElementById('btn-olho');
+        let valoresVisiveis = true;
+
+        btnOlho.addEventListener('click', () => {
+            valoresVisiveis = !valoresVisiveis;
+            if (valoresVisiveis) {
+                document.body.classList.remove('esconder-valores');
+                btnOlho.innerText = '👁️ Ocultar Valores';
+            } else {
+                document.body.classList.add('esconder-valores');
+                btnOlho.innerText = '👁️ Mostrar Valores';
+            }
+        });
+
         async function carregarCotacoes() {
             const tbody = document.getElementById('tabela-ativos');
-            const spanTotal = document.getElementById('patrimonio-total');
-            const divErro = document.getElementById('mensagem-erro');
             
-            // Remove a mensagem de carregando
-            tbody.innerHTML = ''; 
-            let patrimonioTotal = 0;
+            // Calculando o Total Aplicado logo de cara
+            let totalAplicadoGeral = 0;
+            carteira.forEach(item => { totalAplicadoGeral += (item.qtd * item.pm); });
+            document.getElementById('resumo-aplicado').innerText = formatarMoeda(totalAplicadoGeral);
 
-            // Busca um por um para não estourar o limite gratuito da API
+            tbody.innerHTML = ''; 
+            let patrimonioTotalGeral = 0;
+
             for (const item of carteira) {
                 try {
                     const url = `https://brapi.dev/api/quote/${item.ticker}?token=${tokenAPI}`;
                     const response = await fetch(url);
                     
-                    if (!response.ok) {
-                        console.log(`Erro ao buscar ${item.ticker}: ${response.status}`);
-                        continue; // Pula para o próximo se este falhar
-                    }
+                    if (!response.ok) continue; 
                     
                     const data = await response.json();
                     const tr = document.createElement('tr');
                     
                     if (data.results && data.results.length > 0) {
                         const dadosAtivo = data.results[0];
-                        const preco = dadosAtivo.regularMarketPrice || 0;
-                        const variacao = dadosAtivo.regularMarketChangePercent || 0;
-                        const saldoAtivo = preco * item.qtd;
                         
-                        patrimonioTotal += saldoAtivo;
+                        const precoAtual = dadosAtivo.regularMarketPrice || item.pm; // Se falhar a cotação, usa o PM pra não zerar
+                        const varDia = dadosAtivo.regularMarketChangePercent || 0;
+                        
+                        const valorAplicadoItem = item.qtd * item.pm;
+                        const saldoAtualItem = item.qtd * precoAtual;
+                        const rentabTotalItem = ((precoAtual / item.pm) - 1) * 100;
 
-                        const corClass = variacao >= 0 ? 'positivo' : 'negativo';
-                        const sinal = variacao > 0 ? '+' : '';
+                        patrimonioTotalGeral += saldoAtualItem;
+
+                        // Classes de cor (verde ou vermelho)
+                        const corVarDia = varDia >= 0 ? 'positivo' : 'negativo';
+                        const sinalVarDia = varDia > 0 ? '+' : '';
+                        
+                        const corRentab = rentabTotalItem >= 0 ? 'positivo' : 'negativo';
+                        const sinalRentab = rentabTotalItem > 0 ? '+' : '';
 
                         tr.innerHTML = `
                             <td class="ativo-nome">${item.ticker}</td>
                             <td>${item.qtd}</td>
-                            <td>R$ ${preco.toFixed(2).replace('.', ',')}</td>
-                            <td class="${corClass}">${sinal}${variacao.toFixed(2)}%</td>
-                            <td style="font-weight:bold;">R$ ${saldoAtivo.toFixed(2).replace('.', ',')}</td>
+                            <td class="valor">R$ ${formatarMoeda(item.pm)}</td>
+                            <td class="valor">R$ ${formatarMoeda(precoAtual)}</td>
+                            <td class="${corVarDia}">${sinalVarDia}${formatarMoeda(varDia)}%</td>
+                            <td class="${corRentab}">${sinalRentab}${formatarMoeda(rentabTotalItem)}%</td>
+                            <td class="valor">R$ ${formatarMoeda(valorAplicadoItem)}</td>
+                            <td class="valor" style="font-weight:bold;">R$ ${formatarMoeda(saldoAtualItem)}</td>
                         `;
                     }
                     tbody.appendChild(tr);
 
-                    // Atualiza o valor total no rodapé a cada linha que carregar
-                    spanTotal.innerText = patrimonioTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    // Atualiza os painéis superiores a cada ativo carregado
+                    document.getElementById('resumo-patrimonio').innerText = formatarMoeda(patrimonioTotalGeral);
+                    
+                    const rentabCarteira = ((patrimonioTotalGeral / totalAplicadoGeral) - 1) * 100;
+                    const cardRentab = document.getElementById('card-rentabilidade');
+                    const spanRentab = document.getElementById('resumo-rentabilidade');
+                    
+                    spanRentab.innerText = (rentabCarteira > 0 ? '+' : '') + formatarMoeda(rentabCarteira) + '%';
+                    
+                    if (rentabCarteira >= 0) {
+                        spanRentab.className = 'valor positivo';
+                        cardRentab.style.borderColor = '#00ff88';
+                    } else {
+                        spanRentab.className = 'valor negativo';
+                        cardRentab.style.borderColor = '#ff4d4d';
+                    }
+
+                    // Pausa de 300 milissegundos entre as requisições para a Brapi não bloquear por excesso de velocidade
+                    await new Promise(r => setTimeout(r, 300));
 
                 } catch (error) {
                     console.error(`Falha ao puxar ${item.ticker}`, error);
                 }
-            }
-            
-            // Se terminar o loop e a tabela continuar vazia, exibe um aviso
-            if (tbody.innerHTML === '') {
-                divErro.style.display = 'block';
-                divErro.innerHTML = '⚠️ Não foi possível carregar os dados. Verifique sua conexão com a internet.';
             }
         }
 
