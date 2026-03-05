@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Investimentos</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e24; color: #ffffff; margin: 0; padding: 40px; }
+        h2 { text-align: center; color: #00d2ff; }
+        .container { max-width: 900px; margin: 0 auto; background: #2b2b36; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); overflow: hidden; padding-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #3f3f4e; }
+        th { background-color: #363644; font-weight: 600; text-transform: uppercase; font-size: 14px; color: #b0b0c0; }
+        tr:hover { background-color: #3f3f4e; }
+        .ativo-nome { font-weight: bold; color: #fff; }
+        .positivo { color: #00ff88; font-weight: bold; }
+        .negativo { color: #ff4d4d; font-weight: bold; }
+        .aviso { padding: 20px; text-align: center; color: #ffaa00; background: #2b2b36; font-size: 14px; }
+        .rodape-total { text-align: right; padding: 20px; font-size: 20px; font-weight: bold; color: #00d2ff; }
+    </style>
+</head>
+<body>
+
+    <h2>📊 Dashboard da Carteira</h2>
+    
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ativo</th>
+                    <th>Qtd</th>
+                    <th>Cotação Atual</th>
+                    <th>Variação</th>
+                    <th>Saldo Investido</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-ativos">
+                <tr id="linha-carregando"><td colspan="5">Conectando à B3... Aguarde.</td></tr>
+            </tbody>
+        </table>
+        
+        <div class="rodape-total">
+            Patrimônio Variável: R$ <span id="patrimonio-total">0,00</span>
+        </div>
+        
+        <div id="mensagem-erro" class="aviso" style="display:none;"></div>
+    </div>
+
+    <script>
+        // Sua carteira com as quantidades extraídas da sua corretora
+        const carteira = [
+            { ticker: 'XPCA11', qtd: 241 },
+            { ticker: 'SNAG11', qtd: 50 },
+            { ticker: 'SNEL11', qtd: 50 },
+            { ticker: 'MXRF11', qtd: 12 },
+            { ticker: 'IVVB11', qtd: 3 },
+            { ticker: 'TSMC34', qtd: 5 },
+            { ticker: 'GOGL34', qtd: 5 },
+            { ticker: 'BBSE3', qtd: 10 },
+            { ticker: 'BBAS3', qtd: 10 },
+            { ticker: 'VALE3', qtd: 3 },
+            { ticker: 'JHSF3', qtd: 21 },
+            { ticker: 'CMIG4', qtd: 10 }
+        ];
+
+        const tokenAPI = 'tEEHn5m4uzKB9Ne5qH2j26'; 
+
+        async function carregarCotacoes() {
+            const tbody = document.getElementById('tabela-ativos');
+            const spanTotal = document.getElementById('patrimonio-total');
+            const divErro = document.getElementById('mensagem-erro');
+            
+            // Remove a mensagem de carregando
+            tbody.innerHTML = ''; 
+            let patrimonioTotal = 0;
+
+            // Busca um por um para não estourar o limite gratuito da API
+            for (const item of carteira) {
+                try {
+                    const url = `https://brapi.dev/api/quote/${item.ticker}?token=${tokenAPI}`;
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        console.log(`Erro ao buscar ${item.ticker}: ${response.status}`);
+                        continue; // Pula para o próximo se este falhar
+                    }
+                    
+                    const data = await response.json();
+                    const tr = document.createElement('tr');
+                    
+                    if (data.results && data.results.length > 0) {
+                        const dadosAtivo = data.results[0];
+                        const preco = dadosAtivo.regularMarketPrice || 0;
+                        const variacao = dadosAtivo.regularMarketChangePercent || 0;
+                        const saldoAtivo = preco * item.qtd;
+                        
+                        patrimonioTotal += saldoAtivo;
+
+                        const corClass = variacao >= 0 ? 'positivo' : 'negativo';
+                        const sinal = variacao > 0 ? '+' : '';
+
+                        tr.innerHTML = `
+                            <td class="ativo-nome">${item.ticker}</td>
+                            <td>${item.qtd}</td>
+                            <td>R$ ${preco.toFixed(2).replace('.', ',')}</td>
+                            <td class="${corClass}">${sinal}${variacao.toFixed(2)}%</td>
+                            <td style="font-weight:bold;">R$ ${saldoAtivo.toFixed(2).replace('.', ',')}</td>
+                        `;
+                    }
+                    tbody.appendChild(tr);
+
+                    // Atualiza o valor total no rodapé a cada linha que carregar
+                    spanTotal.innerText = patrimonioTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                } catch (error) {
+                    console.error(`Falha ao puxar ${item.ticker}`, error);
+                }
+            }
+            
+            // Se terminar o loop e a tabela continuar vazia, exibe um aviso
+            if (tbody.innerHTML === '') {
+                divErro.style.display = 'block';
+                divErro.innerHTML = '⚠️ Não foi possível carregar os dados. Verifique sua conexão com a internet.';
+            }
+        }
+
+        carregarCotacoes();
+    </script>
+</body>
+</html>
